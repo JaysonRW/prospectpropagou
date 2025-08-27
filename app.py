@@ -263,8 +263,13 @@ def get_businesses():
 
 if __name__ == '__main__':
     logger.info(f"Iniciando aplicação em modo {app.config.get('FLASK_ENV', 'development')}")
+    
+    # Usar porta do Railway se disponível
+    port = int(os.getenv('PORT', app.config['PORT']))
+    host = os.getenv('HOST', app.config['HOST'])
+    
     app.run(
-        host=app.config['HOST'], 
-        port=app.config['PORT'], 
+        host=host, 
+        port=port, 
         debug=app.config['DEBUG']
     )

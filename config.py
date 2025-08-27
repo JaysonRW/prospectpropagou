@@ -14,6 +14,9 @@ class Config:
     HOST = os.getenv('FLASK_HOST', '0.0.0.0')
     PORT = int(os.getenv('FLASK_PORT', 5000))
     
+    # Detectar se está rodando no Railway
+    IS_RAILWAY = os.getenv('RAILWAY_ENVIRONMENT') is not None
+    
     # Configurações do Selenium
     SELENIUM_HEADLESS = os.getenv('SELENIUM_HEADLESS', 'True').lower() == 'true'
     CHROME_DRIVER_PATH = os.getenv('CHROME_DRIVER_PATH', None)
@@ -42,6 +45,14 @@ class ProductionConfig(Config):
     # Usar PostgreSQL em produção se disponível
     if os.getenv('DATABASE_URL'):
         DATABASE_URL = os.getenv('DATABASE_URL')
+    
+    # Configurações específicas para Railway
+    if IS_RAILWAY:
+        HOST = '0.0.0.0'
+        PORT = int(os.getenv('PORT', 5000))
+        # Converter postgres:// para postgresql:// se necessário
+        if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 
 class TestingConfig(Config):
     """Configuração para testes"""

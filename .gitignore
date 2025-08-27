@@ -63,4 +63,9 @@ export/*.csv
 *.temp
 
 # Service files
-*.service 
+*.service
+
+# Railway
+.railway/
+railway.env
+railway.log 

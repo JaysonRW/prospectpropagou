@@ -1,0 +1,257 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Captura de Dados - Google Maps</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-search"></i> Configurar Scraping
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="scrapingForm">
+                    <div class="mb-3">
+                        <label for="keywords" class="form-label">Palavras-chave (uma por linha)</label>
+                        <textarea class="form-control" id="keywords" rows="8" placeholder="restaurantes&#10;salão de beleza&#10;loja de roupas&#10;oficina mecânica&#10;padaria&#10;farmácia&#10;pet shop&#10;academia&#10;dentista&#10;advogado">restaurantes
+salão de beleza
+loja de roupas
+oficina mecânica
+padaria
+farmácia
+pet shop
+academia
+dentista
+advogado</textarea>
+                        <div class="form-text">Digite uma categoria de negócio por linha. O sistema buscará automaticamente em Curitiba.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="maxResults" class="form-label">Máximo de resultados por palavra-chave</label>
+                        <select class="form-select" id="maxResults">
+                            <option value="20">20 resultados</option>
+                            <option value="50" selected>50 resultados</option>
+                            <option value="100">100 resultados</option>
+                            <option value="200">200 resultados</option>
+                        </select>
+                        <div class="form-text">Mais resultados = mais tempo de execução</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" id="startScrapingBtn">
+                            <i class="fas fa-play"></i> Iniciar Scraping
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Palavras-chave Sugeridas -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Sugestões de Categorias
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Serviços</h6>
+                        <div class="mb-2">
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">salão de beleza</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">barbearia</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">oficina mecânica</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">lavagem de carros</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">dentista</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">advogado</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">contador</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Comércio</h6>
+                        <div class="mb-2">
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">restaurantes</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">padaria</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">farmácia</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">loja de roupas</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">supermercado</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">pet shop</span>
+                            <span class="badge bg-light text-dark me-1 mb-1 keyword-suggestion">loja de móveis</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-muted small">
+                    Clique em uma categoria para adicioná-la à lista de palavras-chave
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Status -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="status-indicator {% if status.scraping.running %}status-running{% else %}status-stopped{% endif %}"></span>
+                    <strong id="scraping-status">{% if status.scraping.running %}Executando{% else %}Parado{% endif %}</strong>
+                </div>
+                <p class="text-muted mb-0" id="scraping-progress">
+                    {% if status.scraping.progress %}
+                        {{ status.scraping.progress }}
+                    {% else %}
+                        Aguardando início do scraping
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Dicas -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tips"></i> Dicas
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Use termos específicos como "salão de beleza" ao invés de "beleza"
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        O sistema adiciona automaticamente "Curitiba" na busca
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Evite executar muitas palavras-chave simultaneamente
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-check text-success"></i>
+                        Os dados são salvos automaticamente no banco
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Estatísticas Rápidas -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Estatísticas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <div class="h4 mb-0" id="total-businesses">-</div>
+                            <div class="small text-muted">Total</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 mb-0" id="with-phone">-</div>
+                        <div class="small text-muted">Com Telefone</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar palavra-chave ao clicar na sugestão
+    document.querySelectorAll('.keyword-suggestion').forEach(function(badge) {
+        badge.addEventListener('click', function() {
+            const keyword = this.textContent;
+            const textarea = document.getElementById('keywords');
+            const currentValue = textarea.value.trim();
+            
+            if (currentValue && !currentValue.endsWith('\n')) {
+                textarea.value += '\n';
+            }
+            textarea.value += keyword;
+            
+            // Highlight temporário
+            this.classList.add('bg-success', 'text-white');
+            setTimeout(() => {
+                this.classList.remove('bg-success', 'text-white');
+            }, 1000);
+        });
+    });
+
+    // Submissão do formulário
+    document.getElementById('scrapingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const keywords = document.getElementById('keywords').value
+            .split('\n')
+            .map(k => k.trim())
+            .filter(k => k.length > 0);
+        
+        const maxResults = document.getElementById('maxResults').value;
+        
+        if (keywords.length === 0) {
+            alert('Por favor, adicione pelo menos uma palavra-chave');
+            return;
+        }
+        
+        const startBtn = document.getElementById('startScrapingBtn');
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
+        
+        fetch('/api/start_scraping', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                keywords: keywords,
+                max_results: parseInt(maxResults)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Scraping iniciado com sucesso!');
+            } else {
+                alert('Erro: ' + data.error);
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Scraping';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao iniciar scraping');
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Scraping';
+        });
+    });
+
+    // Atualizar estatísticas
+    function updateStats() {
+        fetch('/api/businesses?per_page=1')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('total-businesses').textContent = data.total;
+            });
+    }
+
+    updateStats();
+    setInterval(updateStats, 10000); // Atualizar a cada 10 segundos
+});
+</script>
+{% endblock %}

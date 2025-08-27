@@ -1,0 +1,275 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Relatórios e Estatísticas</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="/api/export_excel" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-download"></i> Exportar Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Negócios por Categoria -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Negócios por Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if businesses_by_category %}
+                    <canvas id="categoryChart" width="400" height="200"></canvas>
+                {% else %}
+                    <p class="text-muted">Nenhum dado disponível ainda.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagens por Data -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> Mensagens Enviadas por Data
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if messages_by_date %}
+                    <canvas id="messagesChart" width="400" height="200"></canvas>
+                {% else %}
+                    <p class="text-muted">Nenhuma mensagem enviada ainda.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Negócios -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-table"></i> Lista de Negócios Capturados
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <select class="form-select" id="categoryFilter">
+                    <option value="">Todas as categorias</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <input type="text" class="form-control" id="searchInput" placeholder="Buscar por nome...">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped" id="businessesTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone</th>
+                        <th>Categoria</th>
+                        <th>Avaliação</th>
+                        <th>Endereço</th>
+                        <th>Data Captura</th>
+                    </tr>
+                </thead>
+                <tbody id="businessesTableBody">
+                    <!-- Dados carregados via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Paginação">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- Paginação carregada via JavaScript -->
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Dados dos gráficos
+    const businessesByCategory = {{ businesses_by_category | tojsonfilter | safe }};
+    const messagesByDate = {{ messages_by_date | tojsonfilter | safe }};
+
+    // Gráfico de Negócios por Categoria
+    if (businessesByCategory.length > 0) {
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: businessesByCategory.map(item => item[0] || 'Sem categoria'),
+                datasets: [{
+                    data: businessesByCategory.map(item => item[1]),
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Mensagens por Data
+    if (messagesByDate.length > 0) {
+        const messagesCtx = document.getElementById('messagesChart').getContext('2d');
+        new Chart(messagesCtx, {
+            type: 'line',
+            data: {
+                labels: messagesByDate.map(item => item[0]),
+                datasets: [{
+                    label: 'Mensagens Enviadas',
+                    data: messagesByDate.map(item => item[1]),
+                    borderColor: '#36A2EB',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Variáveis para paginação e filtros
+    let currentPage = 1;
+    let currentCategory = '';
+    let currentSearch = '';
+
+    // Carregar dados da tabela
+    function loadBusinesses(page = 1, category = '', search = '') {
+        let url = `/api/businesses?page=${page}&per_page=20`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('businessesTableBody');
+                tbody.innerHTML = '';
+
+                data.businesses.forEach(business => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${business.name || '-'}</td>
+                        <td>${business.phone || '-'}</td>
+                        <td>${business.category || '-'}</td>
+                        <td>
+                            ${business.rating ? 
+                                `<span class="badge bg-warning">${business.rating} ⭐</span>` : 
+                                '-'
+                            }
+                        </td>
+                        <td class="text-truncate" style="max-width: 200px;" title="${business.address || ''}">
+                            ${business.address || '-'}
+                        </td>
+                        <td>${business.created_at}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Atualizar paginação
+                updatePagination(data.page, data.pages, data.total);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar negócios:', error);
+            });
+    }
+
+    // Atualizar paginação
+    function updatePagination(currentPage, totalPages, totalItems) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        // Botão anterior
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}">Anterior</a>`;
+        pagination.appendChild(prevLi);
+
+        // Páginas
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+            pagination.appendChild(li);
+        }
+
+        // Botão próximo
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}">Próximo</a>`;
+        pagination.appendChild(nextLi);
+
+        // Event listeners para paginação
+        pagination.querySelectorAll('a[data-page]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = parseInt(this.dataset.page);
+                if (page > 0 && page <= totalPages) {
+                    currentPage = page;
+                    loadBusinesses(currentPage, currentCategory, currentSearch);
+                }
+            });
+        });
+    }
+
+    // Carregar categorias para o filtro
+    fetch('/api/businesses?per_page=1')
+        .then(response => response.json())
+        .then(data => {
+            // Aqui você pode implementar a lógica para carregar as categorias
+            // Por simplicidade, vamos carregar os dados e extrair as categorias
+        });
+
+    // Event listeners para filtros
+    document.getElementById('categoryFilter').addEventListener('change', function() {
+        currentCategory = this.value;
+        currentPage = 1;
+        loadBusinesses(currentPage, currentCategory, currentSearch);
+    });
+
+    document.getElementById('searchInput').addEventListener('input', function() {
+        currentSearch = this.value;
+        currentPage = 1;
+        // Debounce para evitar muitas requisições
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+            loadBusinesses(currentPage, currentCategory, currentSearch);
+        }, 500);
+    });
+
+    // Carregar dados iniciais
+    loadBusinesses();
+});
+</script>
+{% endblock %}

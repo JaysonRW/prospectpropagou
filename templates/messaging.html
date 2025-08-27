@@ -1,0 +1,267 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Envio de Mensagens - WhatsApp</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-paper-plane"></i> Configurar Campanha
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="messagingForm">
+                    <div class="mb-3">
+                        <label for="maxMessages" class="form-label">Número máximo de mensagens</label>
+                        <select class="form-select" id="maxMessages">
+                            <option value="10">10 mensagens</option>
+                            <option value="25">25 mensagens</option>
+                            <option value="50" selected>50 mensagens</option>
+                            <option value="100">100 mensagens</option>
+                            <option value="200">200 mensagens</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="messagesPerHour" class="form-label">Mensagens por hora</label>
+                        <select class="form-select" id="messagesPerHour">
+                            <option value="5">5 por hora (12 min entre mensagens)</option>
+                            <option value="10" selected>10 por hora (6 min entre mensagens)</option>
+                            <option value="15">15 por hora (4 min entre mensagens)</option>
+                            <option value="20">20 por hora (3 min entre mensagens)</option>
+                        </select>
+                        <div class="form-text">Velocidade menor reduz risco de bloqueio</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="categoryFilter" class="form-label">Filtrar por categoria (opcional)</label>
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">Todas as categorias</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="testMode">
+                            <label class="form-check-label" for="testMode">
+                                Modo teste (não envia mensagens reais)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success" id="startMessagingBtn">
+                            <i class="fas fa-play"></i> Iniciar Campanha
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Preview da Mensagem -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-eye"></i> Preview da Mensagem
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="bg-light p-3 rounded">
+                    <strong>Para:</strong> [Nome do Empresário]<br><br>
+                    
+                    Olá <strong>[Nome do Empresário]</strong>,<br><br>
+
+                    Seu negócio em Curitiba merece mais do que apenas ser encontrado. Ele merece ser descoberto por clientes prontos para comprar, que buscam ativamente o que você oferece, bem aqui na sua região.<br><br>
+
+                    Você já usa o Google Meu Negócio? Ótimo! Ele ajuda a ser visto. Mas e se eu te disser que existe uma forma de ir além, de alcançar um público que já está buscando soluções locais e específicas, com um suporte personalizado que o Google não oferece?<br><br>
+
+                    No Propagou Negócios, nós não apenas listamos sua empresa; nós a promovemos ativamente para um público engajado em Curitiba e região. Nos últimos 90 dias, tivemos mais de 3.900 visitantes únicos e 4.100 pageviews, com um crescimento de mais de 23%!<br><br>
+
+                    Isso significa que seu anúncio estará em um ambiente onde as pessoas já estão com a intenção de compra, buscando guias de empregos, informações sobre bairros e listas de serviços – ou seja, clientes qualificados esperando para te encontrar.<br><br>
+
+                    Quer saber como podemos levar seu negócio para o próximo nível e transformar essa visibilidade em vendas reais? É rápido e sem compromisso.<br><br>
+
+                    Responda a esta mensagem ou clique no link para conversarmos:<br>
+                    <a href="https://wa.me/5541995343245">https://wa.me/5541995343245</a><br><br>
+
+                    Atenciosamente,<br>
+                    Equipe Propagou Negócios
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Status -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="status-indicator {% if status.messaging.running %}status-running{% else %}status-stopped{% endif %}"></span>
+                    <strong id="messaging-status">{% if status.messaging.running %}Executando{% else %}Parado{% endif %}</strong>
+                </div>
+                <p class="text-muted mb-0" id="messaging-progress">
+                    {% if status.messaging.progress %}
+                        {{ status.messaging.progress }}
+                    {% else %}
+                        Aguardando início da campanha
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Estatísticas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <div class="h4 mb-0 text-primary">{{ available_businesses }}</div>
+                            <div class="small text-muted">Disponíveis</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 mb-0 text-success">{{ sent_messages }}</div>
+                        <div class="small text-muted">Enviadas</div>
+                    </div>
+                </div>
+                
+                {% if available_businesses > 0 %}
+                <div class="progress mb-2">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: {{ (sent_messages / available_businesses * 100)|round(1) }}%">
+                    </div>
+                </div>
+                <div class="text-center small text-muted">
+                    {{ (sent_messages / available_businesses * 100)|round(1) }}% concluído
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Avisos Importantes -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle text-warning"></i> Avisos
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-info-circle text-info"></i>
+                        Você precisará escanear o QR code do WhatsApp na primeira vez
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-clock text-warning"></i>
+                        Respeite os limites de velocidade para evitar bloqueios
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-shield-alt text-success"></i>
+                        Use o modo teste primeiro para verificar
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-ban text-danger"></i>
+                        Não envie mensagens para números que já receberam
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Controles -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tools"></i> Controles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-info btn-sm" onclick="window.open('https://web.whatsapp.com', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Abrir WhatsApp Web
+                    </button>
+                    <a href="{{ url_for('reports_page') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-chart-line"></i> Ver Relatórios
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Submissão do formulário
+    document.getElementById('messagingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const maxMessages = document.getElementById('maxMessages').value;
+        const messagesPerHour = document.getElementById('messagesPerHour').value;
+        const categoryFilter = document.getElementById('categoryFilter').value;
+        const testMode = document.getElementById('testMode').checked;
+        
+        const startBtn = document.getElementById('startMessagingBtn');
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
+        
+        fetch('/api/start_messaging', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                max_messages: parseInt(maxMessages),
+                messages_per_hour: parseInt(messagesPerHour),
+                category_filter: categoryFilter || null,
+                test_mode: testMode
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (testMode) {
+                    alert('Campanha de teste iniciada com sucesso!');
+                } else {
+                    alert('Campanha iniciada! Uma nova janela do navegador será aberta para o WhatsApp Web.');
+                }
+            } else {
+                alert('Erro: ' + data.error);
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Campanha';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao iniciar campanha');
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Campanha';
+        });
+    });
+
+    // Atualizar estatísticas periodicamente
+    setInterval(function() {
+        // Aqui você pode adicionar código para atualizar as estatísticas em tempo real
+        // se necessário
+    }, 30000); // A cada 30 segundos
+});
+</script>
+{% endblock %}
